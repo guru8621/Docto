@@ -2,6 +2,7 @@ window.addEventListener('load', async () => {
     if (typeof window.ethereum !== 'undefined') {
         const connectButton = document.getElementById('connectButton');
         const payButton = document.getElementById('payButton');
+        const downloadReceiptButton = document.getElementById('downloadReceiptButton');
         const balanceElement = document.getElementById('balance');
         let userAccount;
 
@@ -27,7 +28,6 @@ window.addEventListener('load', async () => {
                 const balanceEther = web3.utils.fromWei(balanceWei, 'ether');
                 // Format balance to 4 decimal places
                 const formattedBalance = parseFloat(balanceEther).toFixed(4);
-                // Display balance in reversed order
                 balanceElement.innerText = `Balance: ${formattedBalance.split('').join('')} ETH`;
             } catch (error) {
                 console.error('Error fetching balance', error);
@@ -36,21 +36,41 @@ window.addEventListener('load', async () => {
         }
 
         // Generate and download the receipt
-        function generateReceipt(name, email, ethereumAddress, amount) {
-            const receiptContent = `
-                Payment Receipt
-                ----------------
-                Name: ${name}
-                Email: ${email}
-                Amount Paid: ${amount} ETH
-                Date: ${new Date().toLocaleString()}
-            `;
-            const blob = new Blob([receiptContent], { type: 'text/plain' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'payment_receipt.txt';
-            link.click();
-            console.log('Receipt generated and download triggered');
+        async function generateReceipt() {
+            const patientName = document.getElementById('patientName').value;
+            const patientAge = document.getElementById('patientAge').value;
+            const patientContact = document.getElementById('patientContact').value;
+            const billingName = document.getElementById('billingName').value;
+            const billingEmail = document.getElementById('billingEmail').value;
+            const billingAddress = document.getElementById('billingAddress').value;
+            const billingCity = document.getElementById('billingCity').value;
+            const billingState = document.getElementById('billingState').value;
+            const billingZip = document.getElementById('billingZip').value;
+            const amount = document.getElementById('receipt-amount').innerText;
+
+            document.getElementById('receipt-patient-name').innerText = patientName;
+            document.getElementById('receipt-patient-age').innerText = patientAge;
+            document.getElementById('receipt-patient-contact').innerText = patientContact;
+            document.getElementById('receipt-billing-name').innerText = billingName;
+            document.getElementById('receipt-billing-email').innerText = billingEmail;
+            document.getElementById('receipt-billing-address').innerText = billingAddress;
+            document.getElementById('receipt-billing-city').innerText = billingCity;
+            document.getElementById('receipt-billing-state').innerText = billingState;
+            document.getElementById('receipt-billing-zip').innerText = billingZip;
+            document.getElementById('receipt-amount').innerText = amount;
+            document.getElementById('receipt-date').innerText = new Date().toLocaleString();
+
+            const receiptTemplate = document.querySelector('.receipt-template');
+            receiptTemplate.style.display = 'block';
+
+            const receiptElement = document.querySelector('.receipt');
+            const canvas = await html2canvas(receiptElement);
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF();
+            pdf.addImage(imgData, 'PNG', 0, 0);
+            pdf.save('Medical_Receipt.pdf');
+
+            receiptTemplate.style.display = 'none';
         }
 
         // Handle payment
@@ -68,17 +88,17 @@ window.addEventListener('load', async () => {
                     params: [transactionParameters],
                 });
                 alert('Payment successful!');
-            // Show the download receipt button
-            downloadReceiptButton.style.display = 'block';
 
-            // Add click event to the download receipt button
-            downloadReceiptButton.onclick = () => {
-                generateReceipt(name, email, web3.utils.fromWei(amountInWei, 'ether'));
-            };
-        } catch (error) {
-            console.error('Payment failed', error);
-        }
-    });
+                // Show the download receipt button
+                document.getElementById('receipt-amount').innerText = web3.utils.fromWei(amountInWei, 'ether');
+                downloadReceiptButton.style.display = 'block';
+
+                // Add click event to the download receipt button
+                downloadReceiptButton.onclick = generateReceipt;
+            } catch (error) {
+                console.error('Payment failed', error);
+            }
+        });
     } else {
         alert('MetaMask is not installed. Please install it to use this payment method.');
     }
